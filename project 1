@@ -1,0 +1,303 @@
+page.jsp
+<%@ page language="java" %>
+<HTml>
+<HEAD><TITLE>Display file upload form to the user</TITLE></HEAD> 
+
+<BODY>
+<FORM ENCTYPE="multipart/form-data" ACTION=
+"upload_page.jsp" METHOD=POST>
+<br><br><br>
+<center><table border="2" >
+<tr><center><td colspan="2"><p align=
+"center"><B>UPLOAD THE FILE</B><center></td></tr>
+<tr><td><b>Choose the file To Upload:</b>
+</td>
+<td><INPUT NAME="file" TYPE="file"></td></tr>
+<tr><td colspan="2">
+<p align="right"><INPUT TYPE="submit" VALUE="Send File" ></p></td></tr>
+<table>
+</center> 
+</FORM>
+</BODY>
+</HTML>
+
+upload_page.jsp
+
+<%@ page import="java.io.*,java.sql.*" %>
+<html>
+<%
+String contentType = request.getContentType();
+if ((contentType != null) && (contentType.indexOf("multipart/form-data") >= 0)) {
+DataInputStream in = new DataInputStream(request.getInputStream());
+int formDataLength = request.getContentLength();
+byte dataBytes[] = new byte[formDataLength];
+int byteRead = 0;
+int totalBytesRead = 0;
+
+while (totalBytesRead < formDataLength) {
+byteRead = in.read(dataBytes, totalBytesRead, formDataLength);
+totalBytesRead += byteRead;
+}
+String file = new String(dataBytes);
+String saveFile = file.substring(file.indexOf("filename=\"") + 10);
+System.out.println("saveFile=" + saveFile);
+saveFile = saveFile.substring(saveFile.lastIndexOf("\\")+ 1,saveFile.indexOf("\""));
+System.out.println("saveFile" + saveFile);
+saveFile = file.substring(file.indexOf("filename=\"") + 10);
+saveFile = saveFile.substring(0, saveFile.indexOf("\n"));
+saveFile = saveFile.substring(saveFile.lastIndexOf("\\")+ 1,saveFile.indexOf("\""));
+int lastIndex = contentType.lastIndexOf("=");
+String boundary = contentType.substring(lastIndex + 1,contentType.length());
+int pos;
+
+pos = file.indexOf("filename=\"");
+pos = file.indexOf("\n", pos) + 1;
+pos = file.indexOf("\n", pos) + 1;
+pos = file.indexOf("\n", pos) + 1;
+int boundaryLocation = file.indexOf(boundary, pos) - 4;
+int startPos = ((file.substring(0, pos)).getBytes()).length;
+int endPos = ((file.substring(0, boundaryLocation)).getBytes()).length;
+
+FileOutputStream fileOut = new FileOutputStream(saveFile);
+fileOut.write(dataBytes, startPos, (endPos - startPos));
+%>
+<b>File <% out.println(saveFile); %> has been uploaded and inserted into Database.</b>
+<%Connection con=null;
+Statement pst=null;
+String line = null;
+String value=null;
+try{
+StringBuilder contents = new StringBuilder();
+BufferedReader input = new BufferedReader(new FileReader(saveFile));
+while (( line = input.readLine()) != null){
+contents.append(line);
+}
+value = contents.toString();
+System.out.println("Value:"+value);
+Class.forName("com.mysql.jdbc.Driver");
+con=DriverManager.getConnection
+   ("jdbc:mysql://192.168.10.59/application?user=root&password=root"); 
+pst=con.createStatement();
+int val = pst.executeUpdate("insert into file(file_data) values('"+value+"')");
+}
+catch(Exception e)
+{}
+}
+%>
+</html>
+
+//Create a Page ("ReadCsvFile.jsp") to retrieve the data from CSV file "myfile.csv". 
+
+<%@ page import="java.io.*"%>
+<html>
+<body>
+<% 
+   String fName = "c:\\csv\\myfile.csv";
+   String thisLine; 
+  int count=0; 
+  FileInputStream fis = new FileInputStream(fName);
+  DataInputStream myInput = new DataInputStream(fis);
+  int i=0; 
+%>
+<table>
+<%
+while ((thisLine = myInput.readLine()) != null)
+{
+String strar[] = thisLine.split(",");
+for(int j=0;j<strar.length;j++)
+{
+if(i!=0)
+{
+out.print(" " +strar[j]+ " ");
+}
+else
+{
+out.print(" <b>" +strar[j]+ "</b> ");
+}
+}
+out.println("<br>");
+i++;
+} 
+%>
+</table>
+</body>
+</html>
+//Create a "viewcsv.jsp"  to display all the CSV file.
+<html>
+
+    <body>
+
+    <br><br>
+
+    <table width="200px" style="border:1px solid #ff0000;background-color:f7f7f7" align="center">
+
+    <tr style="font-weight:bold;">
+
+    <td align="center" align="center" colspan=2 style="border-bottom: 2px solid #000000;">Download Csv File</td>
+
+    </tr>
+
+ <tr style="font-weight:bold;">
+
+       <td align="center" style="border-bottom: 2px solid #000000;">Id</td>
+
+       <td align="center" style="border-bottom: 2px solid #000000;">File</td>
+
+    </tr>
+
+    <%@ page import="java.io.*,java.util.*,java.sql.*" %> 
+
+    <%
+
+    
+
+	 String connectionURL = "jdbc:mysql://localhost/application";
+
+	  String url=request.getParameter("WEB_URL");
+
+	  String Content=new String("");
+
+	  Statement stmt=null;
+
+      Connection con=null;
+
+    try
+
+    {
+
+	Class.forName("com.mysql.jdbc.Driver").newInstance();
+
+	con=DriverManager.getConnection(connectionURL,"root","root"); 
+
+	stmt=con.createStatement();
+
+	String qry = "select * from file";
+
+	ResultSet rst= stmt.executeQuery(qry);
+
+	while(rst.next())
+
+	{
+
+    %>
+
+	 <tr>
+
+      <td align="center"><%=rst.getInt(1)%></td>
+
+      <td align="center">
+
+      <a href="file_download.jsp?id=<%=rst.getInt(1)%>"><%=rst.getString(3)%></a>
+
+       </td>
+
+    </tr>
+
+    <%
+
+	}
+
+    
+
+    }
+
+    catch(Exception e){
+
+	e.printStackTrace();
+
+    }
+
+    %>
+
+    </table>
+
+    </body>
+
+    </html>
+    <%@ page import="java.io.*,java.util.*,java.sql.*" %> 
+
+    <%
+
+    int id=0;
+
+    if(request.getParameter("id")!=null && request.getParameter("id")!="")
+
+    {
+
+  id = Integer.parseInt(request.getParameter("id").toString());
+
+    }
+
+	 String connectionURL = "jdbc:mysql://localhost/application";
+
+	  String url=request.getParameter("WEB_URL");
+
+	  String Content=new String("");
+
+	  Statement stmt=null;
+
+      Connection con=null;
+
+    try
+
+    {
+
+	String filename="data"+id+".csv";
+
+	 Class.forName("com.mysql.jdbc.Driver").newInstance();
+
+      con=DriverManager.getConnection(connectionURL,"root","root"); 
+
+      stmt=con.createStatement();
+
+	  String qry = "select * from file where id="+id;
+
+	  ResultSet rst= stmt.executeQuery(qry);
+
+			if(rst.next())
+
+			{
+
+    
+
+				Content=rst.getString("file_data");
+
+			}
+
+			out.println(Content);
+
+		byte requestBytes[] = Content.getBytes();
+
+		ByteArrayInputStream bis = new ByteArrayInputStream(requestBytes);
+
+		response.reset();
+
+		response.setContentType("application/text");
+
+		response.setHeader("Content-disposition","attachment; filename=" +filename);
+
+		byte[] buf = new byte[1024];
+
+		  int len;
+
+		  while ((len = bis.read(buf)) > 0){
+
+				  response.getOutputStream().write(buf, 0, len);
+
+				 }
+
+		bis.close();
+
+		response.getOutputStream().flush(); 
+
+    }
+
+    catch(Exception e){
+
+	e.printStackTrace();
+
+    }
+
+    %>
+    
+    
